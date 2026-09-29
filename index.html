@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!--
+            Shipped as a meta tag (not an nginx header) deliberately: it
+            travels with this file itself, so there's no separate server
+            config to remember to sync/apply on deploy - unlike the recent
+            nginx.conf drift, this can't go stale independently of the page.
+
+            style-src needs 'unsafe-inline': Lightweight Charts (vendored,
+            js/vendor/) sets inline style="..." attributes internally for
+            dynamic positioning, confirmed via testing - not something this
+            app's own code does. script-src stays strict; only the much
+            narrower inline-style attack surface is relaxed.
+        -->
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.frankfurter.dev; base-uri 'self'; form-action 'none'; object-src 'none';"
+        />
+        <title>FXGraph</title>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="css/main.css" />
+    </head>
+    <body>
+        <div class="header">
+            <h1>
+                <span class="from-label">EUR</span> to
+                <span class="to-label">PHP</span> Exchange Rate Chart
+            </h1>
+            <p id="dataSourceLabel">Frankfurter ECB Reference Rates Chart</p>
+        </div>
+
+        <div class="container">
+            <div class="graph__container">
+                <div class="grid graph__controls">
+                    <h5 class="from-text" id="fromLabelText">From</h5>
+                    <div class="dropdown from">
+                        <input
+                            id="fromInput"
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-haspopup="listbox"
+                            aria-expanded="false"
+                            aria-controls="fromDropdownContent"
+                            aria-labelledby="fromLabelText"
+                        />
+                        <div
+                            id="fromDropdownContent"
+                            class="dropdown__content"
+                            role="listbox"
+                            aria-label="From currency"
+                        >
+                            <option role="option">EUR</option>
+                            <option role="option">USD</option>
+                            <option role="option">JPY</option>
+                            <option role="option">CZK</option>
+                            <option role="option">DKK</option>
+                            <option role="option">GBP</option>
+                            <option role="option">HUF</option>
+                            <option role="option">PLN</option>
+                            <option role="option">RON</option>
+                            <option role="option">SEK</option>
+                            <option role="option">CHF</option>
+                            <option role="option">ISK</option>
+                            <option role="option">NOK</option>
+                            <option role="option">TRY</option>
+                            <option role="option">AUD</option>
+                            <option role="option">BRL</option>
+                            <option role="option">CAD</option>
+                            <option role="option">CNY</option>
+                            <option role="option">HKD</option>
+                            <option role="option">IDR</option>
+                            <option role="option">ILS</option>
+                            <option role="option">INR</option>
+                            <option role="option">KRW</option>
+                            <option role="option">MXN</option>
+                            <option role="option">MYR</option>
+                            <option role="option">NZD</option>
+                            <option role="option">PHP</option>
+                            <option role="option">SGD</option>
+                            <option role="option">THB</option>
+                            <option role="option">ZAR</option>
+                        </div>
+                    </div>
+                    <button class="switch-btn" id="switchBtn" aria-label="Swap From and To currencies">
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path d="M4 8 H18 M18 8 L14 4 M18 8 L14 12" />
+                            <path d="M20 16 H6 M6 16 L10 12 M6 16 L10 20" />
+                        </svg>
+                    </button>
+                    <h5 class="to-text" id="toLabelText">To</h5>
+                    <div class="dropdown to">
+                        <input
+                            id="toInput"
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-haspopup="listbox"
+                            aria-expanded="false"
+                            aria-controls="toDropdownContent"
+                            aria-labelledby="toLabelText"
+                        />
+                        <div
+                            id="toDropdownContent"
+                            class="dropdown__content"
+                            role="listbox"
+                            aria-label="To currency"
+                        >
+                            <option role="option">EUR</option>
+                            <option role="option">USD</option>
+                            <option role="option">JPY</option>
+                            <option role="option">CZK</option>
+                            <option role="option">DKK</option>
+                            <option role="option">GBP</option>
+                            <option role="option">HUF</option>
+                            <option role="option">PLN</option>
+                            <option role="option">RON</option>
+                            <option role="option">SEK</option>
+                            <option role="option">CHF</option>
+                            <option role="option">ISK</option>
+                            <option role="option">NOK</option>
+                            <option role="option">TRY</option>
+                            <option role="option">AUD</option>
+                            <option role="option">BRL</option>
+                            <option role="option">CAD</option>
+                            <option role="option">CNY</option>
+                            <option role="option">HKD</option>
+                            <option role="option">IDR</option>
+                            <option role="option">ILS</option>
+                            <option role="option">INR</option>
+                            <option role="option">KRW</option>
+                            <option role="option">MXN</option>
+                            <option role="option">MYR</option>
+                            <option role="option">NZD</option>
+                            <option role="option">PHP</option>
+                            <option role="option">SGD</option>
+                            <option role="option">THB</option>
+                            <option role="option">ZAR</option>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="graph__info">
+                    <div class="graph__label">
+                        <h3>
+                            <span class="from-label">EUR</span> to
+                            <span class="to-label">PHP</span> Chart
+                        </h3>
+                    </div>
+
+                    <div>
+                        <h3>
+                            1 <span class="from-label">EUR</span> =
+                            <span id="latestValue">1.17282</span>
+                            <span class="to-label">PHP</span>
+                            <span id="periodChange" class="period-change"></span>
+                            <span id="latestDate">Aug 12, 2021, 14:53 UTC</span>
+                        </h3>
+                    </div>
+                </div>
+
+                <p
+                    id="statusMessage"
+                    class="status-message hide"
+                    role="status"
+                    aria-live="polite"
+                ></p>
+
+                <div class="graph__date-selection">
+                    <button class="date-btn">1W</button>
+                    <button class="date-btn">1M</button>
+                    <button class="date-btn selected">1Y</button>
+                    <button class="date-btn">2Y</button>
+                    <button class="date-btn">5Y</button>
+                    <button class="date-btn">10Y</button>
+                    <button
+                        class="date-btn view-toggle-btn"
+                        id="candleToggleBtn"
+                        aria-pressed="false"
+                    >
+                        Candles
+                    </button>
+                    <label for="smaPeriodInput" class="sma-label hide" id="smaPeriodLabel">
+                        SMA period
+                    </label>
+                    <input
+                        type="number"
+                        id="smaPeriodInput"
+                        class="sma-input hide"
+                        min="2"
+                        placeholder="Auto"
+                    />
+                </div>
+
+                <div class="graph" id="lineChart" role="img" aria-label="Line chart">
+                    <canvas id="graph"></canvas>
+                </div>
+                <div
+                    class="graph hide"
+                    id="candleChart"
+                    role="img"
+                    aria-label="Candlestick chart"
+                ></div>
+            </div>
+        </div>
+
+        <script src="js/vendor/lightweight-charts.standalone.production.js"></script>
+        <script type="module" src="js/main.js"></script>
+    </body>
+</html>

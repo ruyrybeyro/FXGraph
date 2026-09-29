@@ -1,0 +1,383 @@
+/* Globals */
+
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --clr-gray: #b8c8cf;
+    --clr-orange: orange;
+    --clr-blue: #003399;
+    --clr-dark-blue: #000066;
+    /* Deliberately not --clr-dark-blue: Lightweight Charts' own
+       layout.textColor (candleChart.js) is #000066 too, so text in that
+       color shows up throughout the chart's own axis labels - useless as
+       a signal for "is my own overlay text actually the thing rendered
+       here" (confirmed the hard way: a pixel-based test using dark-blue
+       matched the chart's own price-scale numbers instead of the overlay
+       it was supposed to be checking). */
+    --clr-overlay-text: #5d4037;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: white;
+    font-family: "Inter", sans-serif;
+}
+
+input {
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+
+    padding-left: 1.2rem;
+
+    width: 100%;
+    height: 50px;
+
+    border: 2px solid var(--clr-gray);
+    border-radius: 20px;
+}
+
+input:focus {
+    -webkit-appearance: none;
+    outline: none;
+    border-color: var(--clr-blue);
+}
+
+@keyframes input-shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+}
+
+input.blocked {
+    animation: input-shake 0.4s;
+    border-color: #d73027;
+}
+
+h1,
+p {
+    margin: 0;
+}
+
+/* Buttons */
+
+.date-btn {
+    border: 0;
+    border-radius: 25px;
+    background-color: white;
+    color: var(--clr-gray);
+    padding: 8px 16px;
+
+    font-weight: bold;
+}
+
+.date-btn:hover {
+    background-color: var(--clr-gray);
+    color: white;
+}
+
+.view-toggle-btn {
+    margin-left: 1rem;
+    border: 2px solid var(--clr-gray);
+}
+
+.sma-label {
+    margin-left: 1rem;
+    font-weight: bold;
+    color: var(--clr-gray);
+    vertical-align: middle;
+}
+
+.sma-input {
+    width: 4.5rem;
+    height: auto;
+    padding: 8px 10px;
+    margin-left: 0.4rem;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.switch-btn {
+    border-radius: 50px;
+    border: 2px solid var(--clr-gray);
+    height: 50px;
+    width: 50px;
+    color: var(--clr-blue);
+
+    margin: 0 auto 0 auto;
+
+    background-color: transparent;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    grid-column-start: 2;
+    grid-row-start: 2;
+
+    cursor: pointer;
+}
+
+.switch-btn:hover {
+    background-color: var(--clr-gray);
+    color: white;
+}
+
+.selected {
+    background-color: var(--clr-blue);
+    color: white;
+}
+
+/* Dropdown option styles */
+
+.dropdown__content {
+    display: none;
+    width: 100%;
+    max-height: 12.5rem;
+    overflow-y: scroll;
+    background-color: white;
+    border: 2px solid var(--clr-gray);
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
+
+.dropdown {
+    position: relative;
+}
+
+.dropdown__content option {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    padding-left: 1.2rem;
+    width: 100%;
+    background-color: white;
+    text-align: left;
+}
+
+.dropdown__content option:hover {
+    background-color: var(--clr-gray);
+}
+
+.dropdown-active {
+    display: block;
+    position: absolute;
+}
+
+.hide {
+    display: none;
+}
+
+.highlight {
+    color: var(--clr-blue);
+    font-weight: 600;
+}
+
+.status-message {
+    margin: 0;
+    padding-top: 1rem;
+    font-weight: 600;
+}
+
+.status-message.loading {
+    color: var(--clr-gray);
+}
+
+.status-message.error {
+    color: #d73027;
+}
+
+.period-change {
+    font-weight: 600;
+}
+
+.period-change.positive {
+    color: #1a9850;
+}
+
+.period-change.negative {
+    color: #d73027;
+}
+
+/* Container */
+
+.container {
+    border-radius: 12px;
+    border: 3px solid var(--clr-blue);
+    background-color: white;
+    text-align: center;
+    margin: auto;
+    padding: 5rem 5rem;
+    max-width: 90rem;
+
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+}
+
+/* Header styles */
+
+.header {
+    background-color: white;
+    color: var(--clr-blue);
+    text-align: center;
+}
+
+.header h1 {
+    padding: 2rem 0;
+}
+
+.header p {
+    padding-bottom: 2rem;
+}
+
+/* Grid */
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 0.1fr 1fr;
+    grid-template-rows: auto;
+}
+
+/* Label styles */
+
+.from {
+    grid-column-start: 1;
+    grid-row-start: 2;
+}
+
+.from-text {
+    grid-column-start: 1;
+    justify-self: start;
+
+    margin-bottom: 0.3rem;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: auto;
+}
+
+.to-text {
+    grid-column-start: 3;
+    justify-self: start;
+
+    margin-bottom: 0.3rem;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: auto;
+}
+
+.to {
+    grid-column-start: 3;
+    grid-row-start: 2;
+}
+
+/* Graph styles */
+
+.graph__controls {
+    position: relative;
+    padding-top: 2rem;
+}
+
+.graph__info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    color: var(--clr-dark-blue);
+}
+
+.graph {
+    margin: 0 auto 0 auto;
+    width: 100%;
+    height: 300px;
+}
+
+#candleChart {
+    /* Taller than the shared .graph height - this chart has four extra,
+       fixed-height panes below the candlesticks for the MACD, RSI, ADX,
+       and RVI indicators (see MACD_PANE_HEIGHT/RSI_PANE_HEIGHT/
+       ADX_PANE_HEIGHT/RVI_PANE_HEIGHT in candleChart.js), on top of the
+       base candlestick pane height. */
+    height: 720px;
+    /* Anchors the indicator-placeholder overlays (see candleChart.js),
+       positioned absolutely over their own pane. */
+    position: relative;
+}
+
+.indicator-placeholder {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1rem;
+    text-align: center;
+    color: var(--clr-overlay-text);
+    font-size: 13px;
+    pointer-events: none;
+    /* Without this, Lightweight Charts' own canvases (each pane repaints
+       independently, including on hover/crosshair updates) paint over
+       this element despite it being later in DOM order. */
+    z-index: 1;
+}
+
+.indicator-pane-label {
+    position: absolute;
+    left: 0.5rem;
+    padding: 1px 6px;
+    color: var(--clr-overlay-text);
+    background-color: rgba(255, 255, 255, 0.75);
+    font-size: 11px;
+    font-weight: 600;
+    pointer-events: none;
+    /* See .indicator-placeholder's z-index comment - confirmed via
+       elementFromPoint() resolving to the canvas, not this element, at
+       this label's own coordinates without it. */
+    z-index: 1;
+}
+
+#candleChart,
+#graph {
+    /* Without this, touch browsers (confirmed on Android/Chrome) treat a
+       drag on the chart as a page-scroll gesture and never hand the touch
+       move events to the chart, so the crosshair never tracks - each
+       chart needs to be opted out of native touch scrolling to get those
+       gestures for its own pan/crosshair interaction instead. */
+    touch-action: none;
+}
+
+.graph__container {
+    padding-bottom: 8rem;
+}
+
+/* Canvas */
+
+canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/*
+***
+* Media queries
+***
+* This section changes
+* layout for better view on mobile
+***
+*/
+@media screen and (max-width: 62.5rem) {
+    .container {
+        padding: 0 0.2rem;
+    }
+
+    .graph__label {
+        display: none;
+    }
+
+    .graph__info {
+        justify-content: center;
+    }
+}

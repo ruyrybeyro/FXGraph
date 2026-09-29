@@ -1,0 +1,87 @@
+# Reverse proxy for the candle data sources.
+#
+# Neither Twelve Data nor Yahoo Finance send Access-Control-Allow-Origin,
+# so the browser can't call them directly from the FXGraph page (same
+# class of problem as the old api.frankfurter.app CORS issue). This makes
+# nginx fetch them server-to-server (no CORS applies between servers) and
+# re-serve the response same-origin.
+#
+# Twelve Data (https://twelvedata.com) is the PRIMARY source: an official,
+# documented forex API with a real free-tier quota (800 requests/day) and
+# no bot-detection. Sign up for a free API key and put it below.
+#
+# Yahoo Finance is a FALLBACK only, used when Twelve Data fails or its
+# quota runs out — its chart endpoint has no official quota and frequently
+# rate-limits (HTTP 429) requests from datacenter/VPS IPs, which is what a
+# jail's host almost certainly is. This was confirmed while testing.
+#
+# (Stooq was considered too, but it now gates its data endpoints behind a
+# JS proof-of-work anti-bot challenge that a plain HTTP proxy can't pass,
+# so it isn't usable here.)
+
+# --- Add to the http {} context (e.g. nginx.conf, or a file it includes) ---
+# proxy_cache_path can only live at that level, so it can't go in the
+# location blocks below.
+
+# inactive/max_size sized generously so a day's worth of distinct
+# symbol/date-range combos survives on disk without early eviction.
+# proxy_cache_path /var/tmp/nginx_candle_cache levels=1:2 keys_zone=candle_cache:10m max_size=200m inactive=25h;
+
+# --- Add these locations inside the server {} block that already serves ---
+# this site (same domain, so /api/candles/... and /api/yahoo/... are
+# same-origin requests and need no CORS header at all):
+
+location = /api/candles/twelvedata {
+    # Required here specifically: proxy_pass below contains a variable
+    # ($args, needed to append the frontend's symbol/interval/date params
+    # after the API key). Whenever proxy_pass has a variable in it, nginx
+    # can't resolve the upstream hostname once at startup like it normally
+    # does - it has to re-resolve DNS on every single request, which needs
+    # an explicit resolver. Without this, every request fails with
+    # "no resolver defined to resolve api.twelvedata.com" and nothing ever
+    # reaches Twelve Data at all (visible in error.log, and explains an
+    # empty proxy_cache directory - there's never a 200 response to cache).
+    # Using the jail's own resolver (from /etc/resolv.conf) rather than a
+    # public one, so this resolves the same way the rest of the jail does.
+    resolver 192.168.1.5 valid=300s;
+    resolver_timeout 5s;
+
+    # 24h cache to protect the 800 req/day quota. This is safe, not just
+    # fast: the frontend sends exact start_date/end_date (js/main.js,
+    # fetchTwelveDataCandles), which change every day, so the cache key
+    # ($request_uri) naturally rolls over once a day on its own. A cached
+    # entry can only ever be replayed within the same day it was fetched -
+    # it can never serve yesterday's data as today's.
+    proxy_cache candle_cache;
+    proxy_cache_valid 200 24h;
+    proxy_cache_use_stale error timeout updating http_429 http_500 http_502 http_503 http_504;
+    proxy_cache_key "$request_uri";
+
+    # REPLACE YOUR_TWELVE_DATA_API_KEY below with your real key from
+    # https://twelvedata.com — it stays server-side and never reaches
+    # the browser. $args carries through the symbol/interval/date params
+    # the frontend sends.
+    proxy_pass https://api.twelvedata.com/time_series?apikey=YOUR_TWELVE_DATA_API_KEY&$args;
+    proxy_ssl_server_name on;
+    proxy_set_header Host api.twelvedata.com;
+}
+
+location /api/yahoo/ {
+    # Kept short, unlike Twelve Data above: this is a fallback with no
+    # quota to protect, and its cache key uses a relative range string
+    # (range=1mo) rather than absolute dates, so it does NOT self-bust
+    # daily - a long TTL here would genuinely serve stale data.
+    proxy_cache candle_cache;
+    proxy_cache_valid 200 5m;
+    proxy_cache_use_stale error timeout updating http_429 http_500 http_502 http_503 http_504;
+    proxy_cache_key "$request_uri";
+
+    proxy_pass https://query1.finance.yahoo.com/v8/finance/chart/;
+    proxy_ssl_server_name on;
+
+    proxy_set_header Host query1.finance.yahoo.com;
+    proxy_set_header User-Agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
+}
+
+# After editing, test and reload:
+#   nginx -t && nginx -s reload
